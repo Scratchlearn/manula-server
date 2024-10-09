@@ -1,35 +1,39 @@
-require('dotenv').config();  // Load environment variables from .env
-
 const express = require('express');
 const { BigQuery } = require('@google-cloud/bigquery');
 const cors = require('cors');
 const path = require('path');
-
 // Initialize express app
 const app = express();
 
-// Use environment variables for key file path and project ID
-const keyFilePath = process.env.GOOGLE_KEY_FILE;
-const projectId = process.env.GOOGLE_PROJECT_ID;
-const dataset = process.env.BIGQUERY_DATASET;
-const table = process.env.BIGQUERY_TABLE;
+const keyFilePath = path.join(__dirname, 'stellar-acre-407408-260769a1414c.json');
 
 console.log('Key file path:', keyFilePath);
 
+
+
 const bigQueryClient = new BigQuery({
-  keyFilename: keyFilePath,
-  projectId: projectId,
-  scopes: ['https://www.googleapis.com/auth/drive'],  // Add Google Drive scope if needed
+  keyFilename: keyFilePath,  // Use forward slashes
+  projectId: 'stellar-acre-407408',  // Your Google Cloud project ID
+  scopes: ['https://www.googleapis.com/auth/drive']  // Add Google Drive scope
 });
+
 
 // Middleware setup
 app.use(cors());  // Enable CORS
-app.use(express.json());  // To handle JSON requests
+app.use(express.json()); // To handle JSON requests+
+
+
+
+
+
+
+
+
 
 // Route to get data from BigQuery
 app.get('/api/data', async (req, res) => {
   try {
-    const query = `SELECT * FROM \`${projectId}.${dataset}.${table}\` `;
+    const query = 'SELECT  * FROM `stellar-acre-407408.Scheduler_UI.Components_for_SchedulerUI` ';
     const [rows] = await bigQueryClient.query(query);
     console.log('Data fetched from BigQuery:', rows);
 
@@ -50,8 +54,11 @@ app.get('/api/data', async (req, res) => {
   }
 });
 
+
+
 // Assuming the correct data is passed from the frontend:
 app.post('/api/data', async (req, res) => {
+  // Extract values from the request body
   console.log(req.body);
   const {
     Key,
@@ -77,20 +84,22 @@ app.post('/api/data', async (req, res) => {
     Card_Corner_Status
   } = req.body;
 
+  // Construct the SQL query for insertion
   const query = `
-    INSERT INTO \`${projectId}.${dataset}.${table}\` 
+    INSERT INTO \`stellar-acre-407408.Scheduler_UI.Components_for_SchedulerUI\` 
     (Key, Delivery_code, DelCode_w_o__, Step_ID, Task_Details, Frequency___Timeline, Client, Short_description, 
-    Planned_Start_Timestamp, Planned_Delivery_Timestamp, Responsibility, Current_Status, Total_Tasks, 
-    Completed_Tasks, Planned_Tasks, Percent_Tasks_Completed, Created_at, Updated_at, 
-    Time_Left_For_Next_Task_dd_hh_mm_ss, Percent_Delivery_Planned, Card_Corner_Status)
+     Planned_Start_Timestamp, Planned_Delivery_Timestamp, Responsibility, Current_Status, Total_Tasks, 
+     Completed_Tasks, Planned_Tasks, Percent_Tasks_Completed, Created_at, Updated_at, 
+     Time_Left_For_Next_Task_dd_hh_mm_ss, Percent_Delivery_Planned, Card_Corner_Status)
     VALUES 
     (@Key, @Delivery_code, @DelCode_w_o__, @Step_ID, @Task_Details, @Frequency___Timeline, @Client, 
-    @Short_description, @Planned_Start_Timestamp, @Planned_Delivery_Timestamp, @Responsibility, 
-    @Current_Status, @Total_Tasks, @Completed_Tasks, @Planned_Tasks, @Percent_Tasks_Completed, 
-    @Created_at, @Updated_at, @Time_Left_For_Next_Task_dd_hh_mm_ss, @Percent_Delivery_Planned, 
-    @Card_Corner_Status)
+     @Short_description, @Planned_Start_Timestamp, @Planned_Delivery_Timestamp, @Responsibility, 
+     @Current_Status, @Total_Tasks, @Completed_Tasks, @Planned_Tasks, @Percent_Tasks_Completed, 
+     @Created_at, @Updated_at, @Time_Left_For_Next_Task_dd_hh_mm_ss, @Percent_Delivery_Planned, 
+     @Card_Corner_Status)
   `;
 
+  // Define explicit types for fields that might be null
   const options = {
     query: query,
     params: {
@@ -116,6 +125,29 @@ app.post('/api/data', async (req, res) => {
       Percent_Delivery_Planned,
       Card_Corner_Status
     },
+    types: {
+      Key: 'INT64',
+      Delivery_code: 'STRING',
+      DelCode_w_o__: 'STRING',
+      Step_ID: 'INT64',
+      Task_Details: 'STRING',
+      Frequency___Timeline: 'STRING',
+      Client: 'STRING',
+      Short_description: 'STRING',
+      Planned_Start_Timestamp: 'TIMESTAMP',
+      Planned_Delivery_Timestamp: 'TIMESTAMP',
+      Responsibility: 'STRING',
+      Current_Status: 'STRING',
+      Total_Tasks: 'INT64',
+      Completed_Tasks: 'INT64',
+      Planned_Tasks: 'INT64',
+      Percent_Tasks_Completed: 'FLOAT64',
+      Created_at: 'STRING',
+      Updated_at: 'STRING',
+      Time_Left_For_Next_Task_dd_hh_mm_ss: 'STRING',
+      Percent_Delivery_Planned: 'FLOAT64',
+      Card_Corner_Status: 'STRING',
+    },
   };
 
   try {
@@ -128,14 +160,15 @@ app.post('/api/data', async (req, res) => {
   }
 });
 
+
 // Update Task in BigQuery
 app.put('/api/data/:key', async (req, res) => {
   const { key } = req.params;
   const { taskName, startDate, endDate, assignTo, status } = req.body;
 
   const query = `
-    UPDATE \`${projectId}.${dataset}.${table}\`
-    SET Task = @Task_Details, Start_Date = @Planned_Start_Timestamp, End_Date = @Planned_Delivery_Timestamp, Assign_To = @Responsibility, Status = @Current_Status, Client = @Client, Total_Tasks = @Total_Tasks, Planned_Tasks = @Planned_Tasks, Completed_Tasks = @Completed_Tasks, Created_at = @Created_at, Updated_at = @Updated_at
+    UPDATE \`stellar-acre-407408.Scheduler_UI.Components_for_SchedulerUI\`
+    SET Task = @Task_Details, Start_Date = @Planned_Start_Timestamp, End_Date = @Planned_Delivery_Timestamp, Assign_To = @Responsibility, Status = @Current_Status,Client=@Client, Total_Tasks = @Total_Tasks,Planned_Tasks = @Planned_Tasks,Completed_Tasks =@Completed_Tasks,Created_at = @Created_at,Updated_at = @Updated_at
     WHERE Key = @key
   `;
 
@@ -159,7 +192,7 @@ app.delete('/api/data/:key', async (req, res) => {
   const { key } = req.params;
 
   const query = `
-    DELETE FROM \`${projectId}.${dataset}.${table}\`
+    DELETE FROM \`stellar-acre-407408.Scheduler_UI.Components_for_SchedulerUI\`
     WHERE Key = @key
   `;
 
@@ -177,6 +210,8 @@ app.delete('/api/data/:key', async (req, res) => {
     res.status(500).send({ error: 'Failed to delete task from BigQuery.' });
   }
 });
+
+
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
